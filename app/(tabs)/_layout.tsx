@@ -67,7 +67,7 @@ function CustomTabBar({
   );
 }
 
-// Inner Tabs that can use the mode context
+// Tabs that react to workout / diet mode for labels
 function InnerTabs() {
   const { mode } = useMainModeContext();
   const isWorkout = mode === "workout";
@@ -76,6 +76,7 @@ function InnerTabs() {
     <Tabs
       screenOptions={{
         headerShown: false,
+        sceneStyle: { backgroundColor: "#121212" },
       }}
       tabBar={(props) => <CustomTabBar {...props} />}
     >
@@ -87,7 +88,7 @@ function InnerTabs() {
         }}
       />
 
-      {/* TAB 2: Schedule (same name in both modes) */}
+      {/* TAB 2: Schedule */}
       <Tabs.Screen
         name="schedule"
         options={{
@@ -99,11 +100,11 @@ function InnerTabs() {
       <Tabs.Screen
         name="metrics"
         options={{
-          title: isWorkout ? "Steps" : "Calories",
+          title: isWorkout ? "Steps" : "CalsCalc",
         }}
       />
 
-      {/* TAB 4: Progress (same in both modes) */}
+      {/* TAB 4: Progress */}
       <Tabs.Screen
         name="progress"
         options={{
@@ -127,27 +128,29 @@ const styles = StyleSheet.create({
     position: "absolute",
     left: 16,
     right: 16,
-    bottom: 16,
+    bottom: 32,          // a bit higher on the page
   },
   tabRow: {
     flexDirection: "row",
-    borderRadius: 12,
+    borderRadius: 16,
     overflow: "hidden",
-    backgroundColor: "#ffffff",
+    backgroundColor: "transparent",
+    borderWidth: 1,
+    borderColor: "#2a2a2a",
   },
   tabItem: {
     flex: 1,
-    paddingVertical: 10,
+    paddingVertical: 14, // taller tabs
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#ffffff",
+    backgroundColor: "#1e1e1e", // light grey tabs
   },
   tabItemActive: {
-    backgroundColor: "#4f8cff", // active blue segment
+    backgroundColor: "#007AFF", // blue active tab
   },
   tabLabel: {
     fontSize: 14,
-    color: "#111827",
+    color: "#e5e7eb",
     fontWeight: "500",
   },
   tabLabelActive: {
