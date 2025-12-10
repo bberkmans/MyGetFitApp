@@ -1,29 +1,26 @@
-// app/(tabs)/schedule.tsx
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
-import { MainHeader } from "../../src/components/MainHeader";
+import { MainShell } from "../../src/components/MainShell";
 import { useMainModeContext } from "../../src/context/MainModeContext";
-
-const BG_GREY = "#121212";
 
 export default function ScheduleScreen() {
   const { isWorkout } = useMainModeContext();
 
   return (
-    <View style={styles.container}>
-      <MainHeader />
-      <Text style={styles.text}>
-        {isWorkout ? "Workout Schedule" : "Meal Schedule"}
-      </Text>
-    </View>
+    <MainShell>
+      <View style={styles.content}>
+        <Text style={styles.text}>
+          {isWorkout ? "Workout Schedule" : "Meal Schedule"}
+        </Text>
+      </View>
+    </MainShell>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  content: {
     flex: 1,
-    backgroundColor: BG_GREY,
-    paddingHorizontal: 16,
+    justifyContent: "flex-start",
   },
   text: {
     color: "#ffffff",

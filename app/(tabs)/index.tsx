@@ -1,23 +1,24 @@
 // app/(tabs)/index.tsx
+import { useRouter } from "expo-router";
 import React, { useEffect, useRef } from "react";
 import {
   Animated,
   StyleSheet,
   Text,
+  TouchableOpacity,
   View,
 } from "react-native";
-import { MainHeader } from "../../src/components/MainHeader";
+import { MainShell } from "../../src/components/MainShell";
 import { useMainModeContext } from "../../src/context/MainModeContext";
 
-const BG_GREY = "#121212";
-const LIGHT_GREY = "#1e1e1e";
-const BORDER_GREY = "#3a3a3a";
+const BLUE = "#007AFF";
 
 export default function HomeScreen() {
   const { mode, isWorkout } = useMainModeContext();
   const fadeAnim = useRef(new Animated.Value(1)).current;
+  const router = useRouter();
 
-  // Whenever the mode changes (WORKOUT/DIET), fade the content
+  // Fade when switching workout <-> diet
   useEffect(() => {
     Animated.sequence([
       Animated.timing(fadeAnim, {
@@ -33,57 +34,51 @@ export default function HomeScreen() {
     ]).start();
   }, [mode, fadeAnim]);
 
-  return (
-    <View style={styles.container}>
-      {/* Universal WORKOUT / DIET toggle */}
-      <MainHeader />
+  function handleAddWorkout() {
+    // ✅ navigate to the standalone create-workout-page screen
+    router.push("/create-workout-page");
+  }
 
-      {/* Fading content area */}
-      <Animated.View style={[styles.content, { opacity: fadeAnim }]}>
-        {isWorkout ? (
-          <View style={styles.placeholderCard}>
-            <Text style={styles.placeholderTitle}>Workout view</Text>
-            <Text style={styles.placeholderText}>
-              This is where your workout dashboard will go.
-            </Text>
-          </View>
-        ) : (
-          <View style={styles.placeholderCard}>
-            <Text style={styles.placeholderTitle}>Diet view</Text>
-            <Text style={styles.placeholderText}>
-              This is where your diet dashboard will go.
-            </Text>
-          </View>
-        )}
+  return (
+    <MainShell>
+      {/* Only show + Workout button in WORKOUT mode */}
+      {isWorkout && (
+        <View style={styles.addButtonRow}>
+          <TouchableOpacity
+            style={styles.addButton}
+            onPress={handleAddWorkout}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.addButtonText}>+ Workout</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {/* Main content area (currently empty, just fades between modes) */}
+      <Animated.View style={[styles.mainContent, { opacity: fadeAnim }]}>
+        {/* we'll fill this in later with real workout/diet dashboards */}
       </Animated.View>
-    </View>
+    </MainShell>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: BG_GREY,
-    paddingHorizontal: 16,
-  },
-  content: {
+  mainContent: {
     flex: 1,
   },
-  placeholderCard: {
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: BORDER_GREY,
-    padding: 16,
-    backgroundColor: LIGHT_GREY,
+  addButtonRow: {
+    marginBottom: 16,
   },
-  placeholderTitle: {
+  addButton: {
+    alignSelf: "flex-start",
+    backgroundColor: BLUE,
+    borderRadius: 999,
+    paddingHorizontal: 18,
+    paddingVertical: 8,
+  },
+  addButtonText: {
     color: "#ffffff",
-    fontSize: 18,
-    fontWeight: "700",
-    marginBottom: 8,
-  },
-  placeholderText: {
-    color: "#bbbbbb",
+    fontWeight: "600",
     fontSize: 14,
   },
 });

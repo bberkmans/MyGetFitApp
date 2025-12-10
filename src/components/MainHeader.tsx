@@ -1,4 +1,3 @@
-// src/components/MainHeader.tsx
 import React from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useMainModeContext } from "../context/MainModeContext";
@@ -7,7 +6,11 @@ const BLUE = "#007AFF";
 const LIGHT_GREY = "#1e1e1e";
 const BORDER_GREY = "#3a3a3a";
 
-export function MainHeader() {
+type MainHeaderProps = {
+  onPressProfile?: () => void;
+};
+
+export function MainHeader({ onPressProfile }: MainHeaderProps) {
   const { mode, isWorkout, isDiet, setMode } = useMainModeContext();
 
   function handleSwitch(next: "workout" | "diet") {
@@ -16,51 +19,69 @@ export function MainHeader() {
   }
 
   return (
-    <View style={styles.topRow}>
-      <View style={styles.switchContainer}>
-        <TouchableOpacity
-          style={[
-            styles.switchItem,
-            isWorkout && styles.switchItemActive,
-          ]}
-          onPress={() => handleSwitch("workout")}
-        >
-          <Text
+    <View style={styles.headerContainer}>
+      {/* Toggle in the center */}
+      <View style={styles.topRow}>
+        <View style={styles.switchContainer}>
+          <TouchableOpacity
             style={[
-              styles.switchText,
-              isWorkout && styles.switchTextActive,
+              styles.switchItem,
+              isWorkout && styles.switchItemActive,
             ]}
+            onPress={() => handleSwitch("workout")}
           >
-            WORKOUT
-          </Text>
-        </TouchableOpacity>
+            <Text
+              style={[
+                styles.switchText,
+                isWorkout && styles.switchTextActive,
+              ]}
+            >
+              WORKOUT
+            </Text>
+          </TouchableOpacity>
 
-        <TouchableOpacity
-          style={[
-            styles.switchItem,
-            isDiet && styles.switchItemActive,
-          ]}
-          onPress={() => handleSwitch("diet")}
-        >
-          <Text
+          <TouchableOpacity
             style={[
-              styles.switchText,
-              isDiet && styles.switchTextActive,
+              styles.switchItem,
+              isDiet && styles.switchItemActive,
             ]}
+            onPress={() => handleSwitch("diet")}
           >
-            DIET
-          </Text>
-        </TouchableOpacity>
+            <Text
+              style={[
+                styles.switchText,
+                isDiet && styles.switchTextActive,
+              ]}
+            >
+              DIET
+            </Text>
+          </TouchableOpacity>
+        </View>
       </View>
+
+      {/* Circle in top-right */}
+      {onPressProfile && (
+        <TouchableOpacity
+          style={styles.profileButton}
+          onPress={onPressProfile}
+          activeOpacity={0.8}
+        >
+          {/* Placeholder initial – can swap for avatar later */}
+          <Text style={styles.profileInitial}>P</Text>
+        </TouchableOpacity>
+      )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  topRow: {
-    alignItems: "center",
+  headerContainer: {
     marginTop: 60,
     marginBottom: 24,
+    paddingHorizontal: 16,
+  },
+  topRow: {
+    alignItems: "center",
   },
   switchContainer: {
     flexDirection: "row",
@@ -86,5 +107,21 @@ const styles = StyleSheet.create({
   },
   switchTextActive: {
     color: BLUE,
+  },
+  profileButton: {
+    position: "absolute",
+    right: 16,
+    top: 0,
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: "#1f2933",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  profileInitial: {
+    color: "#ffffff",
+    fontWeight: "700",
+    fontSize: 16,
   },
 });

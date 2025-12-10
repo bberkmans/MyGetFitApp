@@ -1,5 +1,5 @@
 // app/(tabs)/_layout.tsx
-import { Tabs } from "expo-router";
+import { Redirect, Tabs } from "expo-router";
 import React from "react";
 import {
   GestureResponderEvent,
@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { useAuth } from "../../src/AuthContext";
 import {
   MainModeProvider,
   useMainModeContext,
@@ -22,7 +23,7 @@ function CustomTabBar({
 }: Parameters<NonNullable<TabBarProps>>[0]) {
   return (
     <View style={styles.container}>
-      <View style={styles.tabRow}>
+      <View className="tabs" style={styles.tabRow}>
         {state.routes.map((route, index) => {
           const { options } = descriptors[route.key];
           const label =
@@ -67,7 +68,6 @@ function CustomTabBar({
   );
 }
 
-// Tabs that react to workout / diet mode for labels
 function InnerTabs() {
   const { mode } = useMainModeContext();
   const isWorkout = mode === "workout";
@@ -100,7 +100,7 @@ function InnerTabs() {
       <Tabs.Screen
         name="metrics"
         options={{
-          title: isWorkout ? "Steps" : "CalsCalc",
+          title: isWorkout ? "Steps" : "Calories",
         }}
       />
 
@@ -116,6 +116,17 @@ function InnerTabs() {
 }
 
 export default function TabLayout() {
+  const { user, loading } = useAuth();
+
+  // still figuring out auth state
+  if (loading) return null;
+
+  // If NOT logged in, bounce to the login screen
+  if (!user) {
+    return <Redirect href="/(auth)/login" />;
+  }
+
+  // Logged in → show main tabs
   return (
     <MainModeProvider>
       <InnerTabs />
@@ -128,7 +139,7 @@ const styles = StyleSheet.create({
     position: "absolute",
     left: 16,
     right: 16,
-    bottom: 32,          // a bit higher on the page
+    bottom: 32,
   },
   tabRow: {
     flexDirection: "row",
@@ -140,13 +151,13 @@ const styles = StyleSheet.create({
   },
   tabItem: {
     flex: 1,
-    paddingVertical: 14, // taller tabs
+    paddingVertical: 14,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#1e1e1e", // light grey tabs
+    backgroundColor: "#1e1e1e", // light grey
   },
   tabItemActive: {
-    backgroundColor: "#007AFF", // blue active tab
+    backgroundColor: "#007AFF", // blue
   },
   tabLabel: {
     fontSize: 14,
