@@ -1,35 +1,93 @@
 // src/hooks/useCreateWorkout.ts
+import { addDoc, collection, serverTimestamp } from "firebase/firestore";
 import { useState } from "react";
-import { Alert } from "react-native";
+import { useAuth } from "../AuthContext";
+import { db } from "../firebase/config";
+
+type SetRow = {
+  reps: string;
+  sets: string;
+};
 
 export function useCreateWorkout() {
+  const { user } = useAuth();
+
   const [name, setName] = useState("");
   const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
 
-  async function handleSave() {
+  // kept for future use if you want sets at workout level
+  const [setRows, setSetRows] = useState<SetRow[]>([
+    { reps: "", sets: "" },
+  ]);
+
+  function addSetRow() {
+    setSetRows((prev) => [...prev, { reps: "", sets: "" }]);
+  }
+
+  function updateSetRow(index: number, field: "reps" | "sets", value: string) {
+    setSetRows((prev) =>
+      prev.map((row, i) =>
+        i === index ? { ...row, [field]: value } : row
+      )
+    );
+  }
+
+  function removeSetRow(index: number) {
+    setSetRows((prev) => prev.filter((_, i) => i !== index));
+  }
+
+  /** Reset the form so a new "+ Workout" starts totally blank */
+  function resetWorkoutDraft() {
+    setName("");
+    setNotes("");
+    setSetRows([{ reps: "", sets: "" }]);
+  }
+
+  /**
+   * Save to Firestore under users/{uid}/workouts.
+   * Returns true if it saved successfully, false otherwise.
+   */
+  async function handleSave(): Promise<boolean> {
     if (!name.trim()) {
-      Alert.alert("Missing name", "Please give your workout a name.");
-      return;
+      console.log("Workout needs a name");
+      return false;
     }
 
+    if (!user) {
+      console.log("No logged-in user, not saving workout");
+      return false;
+    }
+
+    setSaving(true);
+    let ok = false;
+
     try {
-      setSaving(true);
+      const cleanedSets = setRows
+        .filter((row) => row.reps || row.sets)
+        .map((row) => ({
+          reps: Number(row.reps) || 0,
+          sets: Number(row.sets) || 0,
+        }));
 
-      // TODO: later we'll save to Firestore under the logged-in user:
-      // const uid = auth.currentUser?.uid;
-      // await addDoc(collection(db, "workouts"), { uid, name, notes, ... })
+      await addDoc(
+        collection(db, "users", user.uid, "workouts"),
+        {
+          name: name.trim(),
+          notes: notes.trim(),
+          sets: cleanedSets,
+          createdAt: serverTimestamp(),
+        }
+      );
 
-      console.log("Saving workout:", { name, notes });
-
-      Alert.alert("Saved", "Your workout has been created (stub).");
-      // Later we can navigate back or to a workout detail screen
-    } catch (e: any) {
-      console.log("Error saving workout:", e);
-      Alert.alert("Error", "Could not save workout, please try again.");
+      ok = true;
+    } catch (err) {
+      console.log("Error saving workout:", err);
     } finally {
       setSaving(false);
     }
+
+    return ok;
   }
 
   return {
@@ -39,5 +97,10 @@ export function useCreateWorkout() {
     setNotes,
     saving,
     handleSave,
+    setRows,
+    addSetRow,
+    updateSetRow,
+    removeSetRow,
+    resetWorkoutDraft,
   };
 }

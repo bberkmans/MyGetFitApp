@@ -1,17 +1,16 @@
-// app/(tabs)/createWorkoutPage.tsx
+// app/create-workout-page.tsx
 import { useRouter } from "expo-router";
 import React from "react";
 import {
-    KeyboardAvoidingView,
-    Platform,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  KeyboardAvoidingView,
+  Platform,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
-import { MainShell } from "../src/components/MainShell";
-import { MainModeProvider } from "../src/context/MainModeContext";
+import { useWorkoutDraft } from "../src/context/WorkoutDraftContext";
 import { useCreateWorkout } from "../src/hooks/useCreateWorkout";
 
 const BG_GREY = "#121212";
@@ -20,86 +19,127 @@ const BORDER_GREY = "#3a3a3a";
 const BLUE = "#007AFF";
 
 export default function CreateWorkoutPage() {
-  const { name, setName, notes, setNotes, saving, handleSave } =
-    useCreateWorkout();
   const router = useRouter();
 
+  const {
+    name,
+    setName,
+    notes,
+    setNotes,
+    saving,
+    handleSave,
+    resetWorkoutDraft,
+  } = useCreateWorkout();
+
+  const { exercises, clearDraft } = useWorkoutDraft();
+
   async function handleSaveAndGoBack() {
-    await handleSave();
-    // Later we can only goBack if save succeeded. For now this is simple:
-    // router.back();
+    const ok = await handleSave();
+    if (!ok) return; // don't go back if save failed
+
+    // Clear workout form + exercise draft
+    resetWorkoutDraft();
+    clearDraft();
+
+    // Go back to the workout tab
+    router.back();
+  }
+
+  function handleCancel() {
+    // Throw away this workout completely
+    resetWorkoutDraft();
+    clearDraft();
+    router.back();
+  }
+
+  function handleAddExercise() {
+    router.push("/create-exercise-page");
   }
 
   return (
-    <MainModeProvider>
-    <MainShell>
-      <KeyboardAvoidingView
-        style={styles.flex}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-      >
-        <View style={styles.card}>
-          <Text style={styles.title}>Create Workout</Text>
+    <KeyboardAvoidingView
+      style={styles.flex}
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+    >
+      <View style={styles.card}>
+        <Text style={styles.title}>Create Workout</Text>
 
-          <Text style={styles.label}>Workout name</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="e.g. Push Day, Full Body, Legs"
-            placeholderTextColor="#888888"
-            value={name}
-            onChangeText={setName}
-          />
+        <Text style={styles.label}>Workout name</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="e.g. Push Day, Full Body, Legs"
+          placeholderTextColor="#888888"
+          value={name}
+          onChangeText={setName}
+        />
 
-          <Text style={styles.label}>Notes (optional)</Text>
-          <TextInput
-            style={[styles.input, styles.notesInput]}
-            placeholder="Add any notes about exercises, sets, or focus..."
-            placeholderTextColor="#888888"
-            value={notes}
-            onChangeText={setNotes}
-            multiline
-          />
+        <Text style={styles.label}>Notes (optional)</Text>
+        <TextInput
+          style={[styles.input, styles.notesInput]}
+          placeholder="Add any notes about exercises, sets, or focus..."
+          placeholderTextColor="#888888"
+          value={notes}
+          onChangeText={setNotes}
+          multiline
+        />
 
-          <View style={styles.buttonsRow}>
-            <TouchableOpacity
-              style={styles.secondaryButton}
-              onPress={() => router.back()}
-              disabled={saving}
-            >
-              <Text style={styles.secondaryText}>Cancel</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.primaryButton}
-              onPress={handleSaveAndGoBack}
-              disabled={saving}
-            >
-              <Text style={styles.primaryText}>
-                {saving ? "Saving..." : "Save"}
-              </Text>
-            </TouchableOpacity>
+        {/* Exercise chips from the draft */}
+        {exercises.length > 0 && (
+          <View style={styles.exerciseList}>
+            {exercises.map((ex) => (
+              <View key={ex.id} style={styles.exerciseChip}>
+                <Text style={styles.exerciseChipText}>{ex.name}</Text>
+              </View>
+            ))}
           </View>
+        )}
+
+        <TouchableOpacity
+          style={styles.addExerciseButton}
+          onPress={handleAddExercise}
+          disabled={saving}
+        >
+          <Text style={styles.addExerciseText}>+ Exercise</Text>
+        </TouchableOpacity>
+
+        <View style={styles.buttonsRow}>
+          <TouchableOpacity
+            style={styles.secondaryButton}
+            onPress={handleCancel}
+            disabled={saving}
+          >
+            <Text style={styles.secondaryText}>Cancel</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.primaryButton}
+            onPress={handleSaveAndGoBack}
+            disabled={saving}
+          >
+            <Text style={styles.primaryText}>
+              {saving ? "Saving..." : "Save"}
+            </Text>
+          </TouchableOpacity>
         </View>
-      </KeyboardAvoidingView>
-    </MainShell>
-    </MainModeProvider>
+      </View>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
-  flex: {
-    flex: 1,
-  },
+  flex: { flex: 1, backgroundColor: BG_GREY },
   card: {
-    marginTop: 8,
+    marginTop: 40,
     borderRadius: 16,
     borderWidth: 1,
     borderColor: BORDER_GREY,
     padding: 16,
+    marginHorizontal: 16,
     backgroundColor: LIGHT_GREY,
   },
   title: {
     color: "#ffffff",
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: "700",
     marginBottom: 16,
   },
@@ -121,6 +161,37 @@ const styles = StyleSheet.create({
   notesInput: {
     height: 100,
     textAlignVertical: "top",
+  },
+  exerciseList: {
+    marginTop: 16,
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  exerciseChip: {
+    borderRadius: 999,
+    backgroundColor: "#27272a",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  exerciseChipText: {
+    color: "#ffffff",
+    fontSize: 14,
+    fontWeight: "500",
+  },
+  addExerciseButton: {
+    marginTop: 16,
+    alignSelf: "flex-start",
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: BLUE,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+  },
+  addExerciseText: {
+    color: BLUE,
+    fontSize: 16,
+    fontWeight: "600",
   },
   buttonsRow: {
     flexDirection: "row",
