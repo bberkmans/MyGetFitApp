@@ -129,7 +129,7 @@ export default function CreateWorkoutPage() {
 const styles = StyleSheet.create({
   flex: { flex: 1, backgroundColor: BG_GREY },
   card: {
-    marginTop: 40,
+    marginTop: 80,
     borderRadius: 16,
     borderWidth: 1,
     borderColor: BORDER_GREY,

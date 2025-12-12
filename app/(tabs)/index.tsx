@@ -137,6 +137,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   addButton: {
+    marginTop: 20,
     alignSelf: "flex-start",
     backgroundColor: BLUE,
     borderRadius: 999,
@@ -150,6 +151,7 @@ const styles = StyleSheet.create({
   },
 
   contentWrapper: {
+    marginTop:20,
     flex: 1,
     paddingHorizontal: 16,
   },
