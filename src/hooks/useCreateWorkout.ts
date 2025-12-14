@@ -2,12 +2,8 @@
 import { addDoc, collection, serverTimestamp } from "firebase/firestore";
 import { useState } from "react";
 import { useAuth } from "../AuthContext";
+import type { DraftExercise } from "../context/WorkoutDraftContext";
 import { db } from "../firebase/config";
-
-type SetRow = {
-  reps: string;
-  sets: string;
-};
 
 export function useCreateWorkout() {
   const { user } = useAuth();
@@ -16,78 +12,48 @@ export function useCreateWorkout() {
   const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
 
-  // kept for future use if you want sets at workout level
-  const [setRows, setSetRows] = useState<SetRow[]>([
-    { reps: "", sets: "" },
-  ]);
-
-  function addSetRow() {
-    setSetRows((prev) => [...prev, { reps: "", sets: "" }]);
-  }
-
-  function updateSetRow(index: number, field: "reps" | "sets", value: string) {
-    setSetRows((prev) =>
-      prev.map((row, i) =>
-        i === index ? { ...row, [field]: value } : row
-      )
-    );
-  }
-
-  function removeSetRow(index: number) {
-    setSetRows((prev) => prev.filter((_, i) => i !== index));
-  }
-
-  /** Reset the form so a new "+ Workout" starts totally blank */
-  function resetWorkoutDraft() {
+  function reset() {
     setName("");
     setNotes("");
-    setSetRows([{ reps: "", sets: "" }]);
+    setSaving(false);
   }
 
-  /**
-   * Save to Firestore under users/{uid}/workouts.
-   * Returns true if it saved successfully, false otherwise.
-   */
-  async function handleSave(): Promise<boolean> {
+  // return boolean so UI can decide whether to go back
+  async function handleSave(exercises: DraftExercise[]): Promise<boolean> {
+    if (!user) {
+      console.log("Not logged in");
+      return false;
+    }
     if (!name.trim()) {
       console.log("Workout needs a name");
       return false;
     }
 
-    if (!user) {
-      console.log("No logged-in user, not saving workout");
-      return false;
-    }
-
     setSaving(true);
-    let ok = false;
-
     try {
-      const cleanedSets = setRows
-        .filter((row) => row.reps || row.sets)
-        .map((row) => ({
-          reps: Number(row.reps) || 0,
-          sets: Number(row.sets) || 0,
-        }));
+      const payload = {
+        name: name.trim(),
+        notes: notes.trim(),
+        createdAt: serverTimestamp(),
+        exercises: (exercises ?? []).map((ex) => ({
+          id: ex.id,
+          name: ex.name,
+          notes: ex.notes,
+          setsAndReps: (ex.setsAndReps ?? []).map((s) => ({
+            reps: Number(s.reps) || 0,
+            weight: Number(s.weight) || 0,
+          })),
+        })),
+      };
 
-      await addDoc(
-        collection(db, "users", user.uid, "workouts"),
-        {
-          name: name.trim(),
-          notes: notes.trim(),
-          sets: cleanedSets,
-          createdAt: serverTimestamp(),
-        }
-      );
-
-      ok = true;
+      await addDoc(collection(db, "users", user.uid, "workouts"), payload);
+      return true;
     } catch (err) {
       console.log("Error saving workout:", err);
+      return false;
     } finally {
       setSaving(false);
     }
-
-    return ok;
   }
 
   return {
@@ -97,10 +63,6 @@ export function useCreateWorkout() {
     setNotes,
     saving,
     handleSave,
-    setRows,
-    addSetRow,
-    updateSetRow,
-    removeSetRow,
-    resetWorkoutDraft,
+    reset,
   };
 }

@@ -10,8 +10,7 @@ import {
 } from "react-native";
 import { useAuth } from "../../src/AuthContext";
 import {
-  MainModeProvider,
-  useMainModeContext,
+  useMainModeContext
 } from "../../src/context/MainModeContext";
 
 type TabBarProps = React.ComponentProps<typeof Tabs>["tabBar"];
@@ -128,9 +127,7 @@ export default function TabLayout() {
 
   // Logged in → show main tabs
   return (
-    <MainModeProvider>
       <InnerTabs />
-    </MainModeProvider>
   );
 }
 

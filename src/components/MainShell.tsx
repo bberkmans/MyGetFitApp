@@ -1,12 +1,12 @@
 // src/components/MainShell.tsx
 import React, { ReactNode, useRef, useState } from "react";
 import {
-    Animated,
-    Dimensions,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  Animated,
+  Dimensions,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { useAuth } from "../AuthContext";
 import { MainHeader } from "./MainHeader";
@@ -15,16 +15,22 @@ const BG_GREY = "#121212";
 const RED = "#ef4444";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
-const SIDEBAR_WIDTH = SCREEN_WIDTH * 0.6; // ~60% of screen width
+const SIDEBAR_WIDTH = SCREEN_WIDTH * 0.6;
 
 type MainShellProps = {
   children: ReactNode;
+  showHeader?: boolean;   // ✅ NEW
+  showProfile?: boolean;  // ✅ NEW (optional)
 };
 
-export function MainShell({ children }: MainShellProps) {
+export function MainShell({
+  children,
+  showHeader = true,
+  showProfile = true,
+}: MainShellProps) {
   const { signOut } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const slideAnim = useRef(new Animated.Value(0)).current; // 0 = closed, 1 = open
+  const slideAnim = useRef(new Animated.Value(0)).current;
 
   function openSidebar() {
     setSidebarOpen(true);
@@ -40,21 +46,17 @@ export function MainShell({ children }: MainShellProps) {
       toValue: 0,
       duration: 200,
       useNativeDriver: true,
-    }).start(() => {
-      setSidebarOpen(false);
-    });
+    }).start(() => setSidebarOpen(false));
   }
 
-  // Sidebar slide from right
   const sidebarTranslateX = slideAnim.interpolate({
     inputRange: [0, 1],
-    outputRange: [SIDEBAR_WIDTH, 0], // start off-screen to the right
+    outputRange: [SIDEBAR_WIDTH, 0],
   });
 
   async function handleLogout() {
     try {
       await signOut();
-      // (tabs)/_layout.tsx will see user === null and Redirect to /login
     } catch (e) {
       console.log("Error logging out:", e);
     }
@@ -62,23 +64,22 @@ export function MainShell({ children }: MainShellProps) {
 
   return (
     <View style={styles.container}>
-      {/* Header with workout/diet toggle + profile circle */}
-      <MainHeader onPressProfile={openSidebar} />
+      {/* ✅ Header optional */}
+      {showHeader && (
+        <MainHeader onPressProfile={showProfile ? openSidebar : undefined} />
+      )}
 
-      {/* Screen content */}
       <View style={styles.content}>{children}</View>
 
-      {/* Sidebar overlay + panel */}
+      {/* Sidebar overlay */}
       {sidebarOpen && (
-        <>
-          {/* FULL-SCREEN dim background */}
+        <View style={styles.sidebarOverlay}>
           <TouchableOpacity
-            style={styles.sidebarOverlay}
+            style={styles.sidebarBackdrop}
             activeOpacity={1}
             onPress={closeSidebar}
           />
 
-          {/* Sliding sidebar panel */}
           <Animated.View
             style={[
               styles.sidebarPanel,
@@ -87,14 +88,11 @@ export function MainShell({ children }: MainShellProps) {
           >
             <Text style={styles.sidebarTitle}>Profile</Text>
 
-            <TouchableOpacity
-              style={styles.logoutButton}
-              onPress={handleLogout}
-            >
+            <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
               <Text style={styles.logoutText}>Log out</Text>
             </TouchableOpacity>
           </Animated.View>
-        </>
+        </View>
       )}
     </View>
   );
@@ -110,22 +108,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
 
-  // Full-screen dim overlay
   sidebarOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(0,0,0,0.4)", // whole screen is dimmed
+    flexDirection: "row",
   },
-
-  // Sidebar panel sitting on the right
+  sidebarBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.4)",
+  },
   sidebarPanel: {
-    position: "absolute",
-    right: 0,
-    top: 0,
-    height: "100%",
     width: SIDEBAR_WIDTH,
     backgroundColor: "#18181b",
     paddingHorizontal: 16,
-    paddingTop: 120, // moves "Profile" + "Log out" lower on the screen
+    paddingTop: 60,
     paddingBottom: 24,
     borderLeftWidth: 1,
     borderLeftColor: "#27272a",
@@ -134,7 +129,7 @@ const styles = StyleSheet.create({
     color: "#ffffff",
     fontSize: 20,
     fontWeight: "700",
-    marginBottom: 32,
+    marginBottom: 24,
   },
   logoutButton: {
     marginTop: 8,

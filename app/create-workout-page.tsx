@@ -20,40 +20,34 @@ const BLUE = "#007AFF";
 
 export default function CreateWorkoutPage() {
   const router = useRouter();
-
-  const {
-    name,
-    setName,
-    notes,
-    setNotes,
-    saving,
-    handleSave,
-    resetWorkoutDraft,
-  } = useCreateWorkout();
-
   const { exercises, clearDraft } = useWorkoutDraft();
+  const { name, setName, notes, setNotes, saving, handleSave, reset } =
+    useCreateWorkout();
 
   async function handleSaveAndGoBack() {
-    const ok = await handleSave();
-    if (!ok) return; // don't go back if save failed
+    const ok = await handleSave(exercises);
+    if (!ok) return;
 
-    // Clear workout form + exercise draft
-    resetWorkoutDraft();
     clearDraft();
-
-    // Go back to the workout tab
+    reset();
     router.back();
   }
 
   function handleCancel() {
-    // Throw away this workout completely
-    resetWorkoutDraft();
     clearDraft();
+    reset();
     router.back();
   }
 
   function handleAddExercise() {
     router.push("/create-exercise-page");
+  }
+
+  function handleEditExercise(exerciseId: string) {
+    router.push({
+      pathname: "/create-exercise-page",
+      params: { exerciseId },
+    });
   }
 
   return (
@@ -83,13 +77,18 @@ export default function CreateWorkoutPage() {
           multiline
         />
 
-        {/* Exercise chips from the draft */}
+        {/* Exercise chips */}
         {exercises.length > 0 && (
           <View style={styles.exerciseList}>
             {exercises.map((ex) => (
-              <View key={ex.id} style={styles.exerciseChip}>
+              <TouchableOpacity
+                key={ex.id}
+                style={styles.exerciseChip}
+                activeOpacity={0.85}
+                onPress={() => handleEditExercise(ex.id)}
+              >
                 <Text style={styles.exerciseChipText}>{ex.name}</Text>
-              </View>
+              </TouchableOpacity>
             ))}
           </View>
         )}
@@ -158,10 +157,8 @@ const styles = StyleSheet.create({
     color: "#ffffff",
     backgroundColor: BG_GREY,
   },
-  notesInput: {
-    height: 100,
-    textAlignVertical: "top",
-  },
+  notesInput: { height: 100, textAlignVertical: "top" },
+
   exerciseList: {
     marginTop: 16,
     flexDirection: "row",
@@ -174,11 +171,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
   },
-  exerciseChipText: {
-    color: "#ffffff",
-    fontSize: 14,
-    fontWeight: "500",
-  },
+  exerciseChipText: { color: "#ffffff", fontSize: 14, fontWeight: "500" },
+
   addExerciseButton: {
     marginTop: 16,
     alignSelf: "flex-start",
@@ -188,33 +182,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 10,
   },
-  addExerciseText: {
-    color: BLUE,
-    fontSize: 16,
-    fontWeight: "600",
-  },
+  addExerciseText: { color: BLUE, fontSize: 16, fontWeight: "600" },
+
   buttonsRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     marginTop: 24,
   },
-  secondaryButton: {
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-  },
-  secondaryText: {
-    color: "#cccccc",
-    fontSize: 16,
-  },
+  secondaryButton: { paddingVertical: 10, paddingHorizontal: 16 },
+  secondaryText: { color: "#cccccc", fontSize: 16 },
   primaryButton: {
     paddingVertical: 10,
     paddingHorizontal: 20,
     borderRadius: 999,
     backgroundColor: BLUE,
   },
-  primaryText: {
-    color: "#ffffff",
-    fontSize: 16,
-    fontWeight: "600",
-  },
+  primaryText: { color: "#ffffff", fontSize: 16, fontWeight: "600" },
 });

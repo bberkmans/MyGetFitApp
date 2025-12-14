@@ -1,11 +1,6 @@
 // app/(tabs)/index.tsx
 import { useRouter } from "expo-router";
-import {
-  collection,
-  onSnapshot,
-  orderBy,
-  query,
-} from "firebase/firestore";
+import { collection, onSnapshot, orderBy, query } from "firebase/firestore";
 import React, { useEffect, useRef, useState } from "react";
 import {
   Animated,
@@ -23,11 +18,25 @@ const LIGHT_GREY = "#1e1e1e";
 const BORDER_GREY = "#3a3a3a";
 const BLUE = "#007AFF";
 
+type WorkoutExercise = {
+  id: string;
+  name: string;
+};
+
 type WorkoutDoc = {
   id: string;
   name: string;
   notes?: string;
+  exercises?: WorkoutExercise[];
 };
+
+function formatExerciseLine(exercises?: WorkoutExercise[]) {
+  if (!exercises || exercises.length === 0) return "No exercises yet";
+  return exercises
+    .map((e) => e?.name)
+    .filter(Boolean)
+    .join(", ");
+}
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -66,12 +75,13 @@ export default function HomeScreen() {
     );
 
     const unsub = onSnapshot(q, (snapshot) => {
-      const docs: WorkoutDoc[] = snapshot.docs.map((doc) => {
-        const data = doc.data() as any;
+      const docs: WorkoutDoc[] = snapshot.docs.map((docSnap) => {
+        const data = docSnap.data() as any;
         return {
-          id: doc.id,
+          id: docSnap.id,
           name: data.name ?? "Untitled workout",
-          notes: data.notes,
+          notes: data.notes ?? "",
+          exercises: Array.isArray(data.exercises) ? data.exercises : [],
         };
       });
       setWorkouts(docs);
@@ -86,7 +96,6 @@ export default function HomeScreen() {
 
   return (
     <MainShell>
-      {/* + Workout button in WORKOUT mode only */}
       {isWorkout && (
         <View style={styles.addButtonRow}>
           <TouchableOpacity
@@ -102,7 +111,6 @@ export default function HomeScreen() {
       <Animated.View style={[styles.contentWrapper, { opacity: fadeAnim }]}>
         {isWorkout ? (
           <View style={styles.workoutSection}>
-            {/* Workout list */}
             {workouts.length === 0 ? (
               <Text style={styles.emptyText}>
                 You don’t have any workouts yet. Tap “+ Workout” to create one.
@@ -110,15 +118,32 @@ export default function HomeScreen() {
             ) : (
               <View style={styles.workoutList}>
                 {workouts.map((w) => (
-                  <View key={w.id} style={styles.workoutBubble}>
+                  <TouchableOpacity
+                    key={w.id}
+                    style={styles.workoutCard}
+                    activeOpacity={0.85}
+                    onPress={() =>
+                      router.push({
+                        pathname: "/display-workout-page",
+                        params: { workoutId: w.id },
+                      })
+                    }
+                  >
                     <Text style={styles.workoutName}>{w.name}</Text>
-                  </View>
+
+                    <Text
+                      style={styles.exerciseLine}
+                      numberOfLines={1}
+                      ellipsizeMode="tail"
+                    >
+                      {formatExerciseLine(w.exercises)}
+                    </Text>
+                  </TouchableOpacity>
                 ))}
               </View>
             )}
           </View>
         ) : (
-          // Diet view placeholder for now
           <View style={styles.card}>
             <Text style={styles.title}>Diet view</Text>
             <Text style={styles.text}>
@@ -133,11 +158,11 @@ export default function HomeScreen() {
 
 const styles = StyleSheet.create({
   addButtonRow: {
-    marginBottom: 16,
+    marginBottom: 14,
     paddingHorizontal: 16,
+    marginTop: 10,
   },
   addButton: {
-    marginTop: 20,
     alignSelf: "flex-start",
     backgroundColor: BLUE,
     borderRadius: 999,
@@ -151,41 +176,36 @@ const styles = StyleSheet.create({
   },
 
   contentWrapper: {
-    marginTop:20,
     flex: 1,
     paddingHorizontal: 16,
+    marginTop: 10,
   },
 
-  workoutSection: {
-    flex: 1,
-  },
-  emptyText: {
-    color: "#9ca3af",
-    fontSize: 14,
-  },
+  workoutSection: { flex: 1 },
+  emptyText: { color: "#9ca3af", fontSize: 14 },
 
-  // the list itself
-  workoutList: {
-    gap: 12,
-  },
-  workoutBubble: {
-    width: "100%",
-    borderRadius: 999,
-    backgroundColor: LIGHT_GREY,
+  workoutList: { gap: 12 },
+
+  workoutCard: {
     borderWidth: 1,
     borderColor: BORDER_GREY,
-    paddingVertical: 12,
+    backgroundColor: LIGHT_GREY,
+    borderRadius: 14,
+    paddingVertical: 14,
     paddingHorizontal: 16,
-    alignItems: "center",
-    justifyContent: "center",
   },
   workoutName: {
     color: "#ffffff",
     fontSize: 16,
-    fontWeight: "600",
+    fontWeight: "700",
+    marginBottom: 8,
+  },
+  exerciseLine: {
+    color: "#c7c7c7",
+    fontSize: 13,
+    lineHeight: 18,
   },
 
-  // diet placeholder card
   card: {
     borderRadius: 16,
     borderWidth: 1,
@@ -199,8 +219,5 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     marginBottom: 8,
   },
-  text: {
-    color: "#bbbbbb",
-    fontSize: 14,
-  },
+  text: { color: "#bbbbbb", fontSize: 14 },
 });

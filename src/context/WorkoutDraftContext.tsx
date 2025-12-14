@@ -2,7 +2,6 @@ import React, { createContext, ReactNode, useContext, useState } from "react";
 
 export type DraftSet = {
   reps: number;
-  sets: number;
   weight: number;
 };
 
@@ -16,6 +15,7 @@ export type DraftExercise = {
 type WorkoutDraftContextValue = {
   exercises: DraftExercise[];
   addExercise: (exercise: DraftExercise) => void;
+  updateExercise: (exercise: DraftExercise) => void;
   clearDraft: () => void;
 };
 
@@ -30,12 +30,20 @@ export function WorkoutDraftProvider({ children }: { children: ReactNode }) {
     setExercises((prev) => [...prev, exercise]);
   }
 
+  function updateExercise(exercise: DraftExercise) {
+    setExercises((prev) =>
+      prev.map((e) => (e.id === exercise.id ? exercise : e))
+    );
+  }
+
   function clearDraft() {
     setExercises([]);
   }
 
   return (
-    <WorkoutDraftContext.Provider value={{ exercises, addExercise, clearDraft }}>
+    <WorkoutDraftContext.Provider
+      value={{ exercises, addExercise, updateExercise, clearDraft }}
+    >
       {children}
     </WorkoutDraftContext.Provider>
   );

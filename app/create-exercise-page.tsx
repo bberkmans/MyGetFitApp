@@ -1,14 +1,14 @@
 // app/create-exercise-page.tsx
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import React from "react";
 import {
-    KeyboardAvoidingView,
-    Platform,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  KeyboardAvoidingView,
+  Platform,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { useCreateExercise } from "../src/hooks/useCreateExercise";
 
@@ -19,6 +19,15 @@ const BLUE = "#007AFF";
 const RED = "#ef4444";
 
 export default function CreateExercisePage() {
+  const router = useRouter();
+  const params = useLocalSearchParams<{
+    workoutId?: string;
+    exerciseId?: string;
+  }>();
+
+  const workoutId = params.workoutId;
+  const exerciseId = params.exerciseId;
+
   const {
     name,
     setName,
@@ -30,13 +39,11 @@ export default function CreateExercisePage() {
     removeSetRow,
     saving,
     saveExercise,
-  } = useCreateExercise();
-
-  const router = useRouter();
+  } = useCreateExercise({ workoutId, exerciseId });
 
   async function handleSaveAndGoBack() {
-    await saveExercise(); // builds draft with reps/sets/weight + addExercise
-    router.back();        // go back to Create Workout page
+    await saveExercise();
+    router.back();
   }
 
   return (
@@ -45,9 +52,10 @@ export default function CreateExercisePage() {
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
       <View style={styles.card}>
-        <Text style={styles.title}>Create Exercise</Text>
+        <Text style={styles.title}>
+          {exerciseId ? "Edit Exercise" : "Create Exercise"}
+        </Text>
 
-        {/* Exercise name */}
         <Text style={styles.label}>Exercise name</Text>
         <TextInput
           style={styles.input}
@@ -57,7 +65,6 @@ export default function CreateExercisePage() {
           onChangeText={setName}
         />
 
-        {/* Notes */}
         <Text style={styles.label}>Notes (optional)</Text>
         <TextInput
           style={[styles.input, styles.notesInput]}
@@ -68,8 +75,9 @@ export default function CreateExercisePage() {
           multiline
         />
 
-        {/* Sets, reps & weight */}
-        <Text style={[styles.label, { marginTop: 20 }]}>Sets, reps & weight</Text>
+        <Text style={[styles.label, { marginTop: 20 }]}>
+          Reps & weight
+        </Text>
 
         {setsAndReps.map((row, index) => (
           <View style={styles.setRow} key={row.id}>
@@ -79,28 +87,11 @@ export default function CreateExercisePage() {
                 style={styles.setInput}
                 keyboardType="numeric"
                 value={row.reps}
-                onChangeText={(text) =>
-                  updateSetEntry(row.id, "reps", text)
-                }
+                onChangeText={(text) => updateSetEntry(row.id, "reps", text)}
                 placeholder="0"
                 placeholderTextColor="#888888"
               />
               <Text style={styles.setLabel}>reps</Text>
-            </View>
-
-            {/* sets */}
-            <View style={styles.setBlock}>
-              <TextInput
-                style={styles.setInput}
-                keyboardType="numeric"
-                value={row.sets}
-                onChangeText={(text) =>
-                  updateSetEntry(row.id, "sets", text)
-                }
-                placeholder="0"
-                placeholderTextColor="#888888"
-              />
-              <Text style={styles.setLabel}>sets</Text>
             </View>
 
             {/* weight */}
@@ -109,16 +100,13 @@ export default function CreateExercisePage() {
                 style={styles.setInput}
                 keyboardType="numeric"
                 value={row.weight}
-                onChangeText={(text) =>
-                  updateSetEntry(row.id, "weight", text)
-                }
+                onChangeText={(text) => updateSetEntry(row.id, "weight", text)}
                 placeholder="0"
                 placeholderTextColor="#888888"
               />
               <Text style={styles.setLabel}>weight</Text>
             </View>
 
-            {/* remove button for rows after the first */}
             {index > 0 && (
               <TouchableOpacity
                 style={styles.removeCircle}
@@ -134,7 +122,6 @@ export default function CreateExercisePage() {
           <Text style={styles.addSetText}>+ Add set</Text>
         </TouchableOpacity>
 
-        {/* Bottom buttons */}
         <View style={styles.buttonsRow}>
           <TouchableOpacity
             style={styles.secondaryButton}
@@ -199,7 +186,6 @@ const styles = StyleSheet.create({
     textAlignVertical: "top",
   },
 
-  // sets / reps / weight row
   setRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -208,10 +194,10 @@ const styles = StyleSheet.create({
   setBlock: {
     flexDirection: "row",
     alignItems: "center",
-    marginRight: 6,        // tighter gap
+    marginRight: 10,
   },
   setInput: {
-    width: 52,             // a bit narrower
+    width: 56,
     borderRadius: 999,
     borderWidth: 1,
     borderColor: "#444444",
@@ -220,7 +206,7 @@ const styles = StyleSheet.create({
     color: "#ffffff",
     backgroundColor: BG_GREY,
     textAlign: "center",
-    marginRight: 4,        // smaller gap before label
+    marginRight: 6,
   },
   setLabel: {
     color: "#cccccc",
@@ -240,7 +226,6 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
 
-  // bottom buttons
   buttonsRow: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -266,7 +251,6 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
 
-  // remove circle
   removeCircle: {
     width: 26,
     height: 26,
@@ -275,7 +259,7 @@ const styles = StyleSheet.create({
     borderColor: RED,
     alignItems: "center",
     justifyContent: "center",
-    marginLeft: 4,         // small padding from last block
+    marginLeft: 6,
   },
   removeText: {
     color: RED,
