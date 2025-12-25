@@ -14,6 +14,8 @@ export default function RootLayout() {
             <Stack.Screen name="create-workout-page" />
             <Stack.Screen name="create-exercise-page" />
             <Stack.Screen name="display-workout-page" />
+            <Stack.Screen name="create-meal-page" />
+            <Stack.Screen name="display-meal-page" />
           </Stack>
         </WorkoutDraftProvider>
       </MainModeProvider>

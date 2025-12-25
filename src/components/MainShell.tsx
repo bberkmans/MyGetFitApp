@@ -126,6 +126,7 @@ const styles = StyleSheet.create({
     borderLeftColor: "#27272a",
   },
   sidebarTitle: {
+    marginTop: 30,
     color: "#ffffff",
     fontSize: 20,
     fontWeight: "700",

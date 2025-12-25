@@ -30,10 +30,30 @@ type WorkoutDoc = {
   exercises?: WorkoutExercise[];
 };
 
+type MealIngredient = {
+  name: string;
+  amount: number;
+};
+
+type MealDoc = {
+  id: string;
+  name: string;
+  instructions?: string;
+  ingredients?: MealIngredient[];
+};
+
 function formatExerciseLine(exercises?: WorkoutExercise[]) {
   if (!exercises || exercises.length === 0) return "No exercises yet";
   return exercises
     .map((e) => e?.name)
+    .filter(Boolean)
+    .join(", ");
+}
+
+function formatIngredientLine(ingredients?: MealIngredient[]) {
+  if (!ingredients || ingredients.length === 0) return "No ingredients yet";
+  return ingredients
+    .map((i) => i?.name)
     .filter(Boolean)
     .join(", ");
 }
@@ -44,7 +64,9 @@ export default function HomeScreen() {
   const { user } = useAuth();
 
   const fadeAnim = useRef(new Animated.Value(1)).current;
+
   const [workouts, setWorkouts] = useState<WorkoutDoc[]>([]);
+  const [meals, setMeals] = useState<MealDoc[]>([]);
 
   // Fade animation when switching workout <-> diet
   useEffect(() => {
@@ -62,7 +84,7 @@ export default function HomeScreen() {
     ]).start();
   }, [mode, fadeAnim]);
 
-  // Listen to this user's workouts from Firestore
+  // ✅ WORKOUTS listener (workout mode only)
   useEffect(() => {
     if (!user || !isWorkout) {
       setWorkouts([]);
@@ -90,13 +112,54 @@ export default function HomeScreen() {
     return unsub;
   }, [user?.uid, isWorkout]);
 
+  // ✅ MEALS listener (diet mode only)
+  useEffect(() => {
+    if (!user || isWorkout) {
+      setMeals([]);
+      return;
+    }
+
+    const q = query(
+      collection(db, "users", user.uid, "meals"),
+      orderBy("createdAt", "desc")
+    );
+
+    const unsub = onSnapshot(
+      q,
+      (snapshot) => {
+        const docs: MealDoc[] = snapshot.docs.map((docSnap) => {
+          const data = docSnap.data() as any;
+          return {
+            id: docSnap.id,
+            name: data.name ?? "Untitled meal",
+            instructions: data.instructions ?? "",
+            ingredients: Array.isArray(data.ingredients) ? data.ingredients : [],
+          };
+        });
+        setMeals(docs);
+      },
+      (error) => {
+        console.log("Meals snapshot error:", error);
+        setMeals([]);
+      }
+    );
+
+
+    return unsub;
+  }, [user?.uid, isWorkout]);
+
   function handleAddWorkout() {
     router.push("/create-workout-page");
   }
 
+  function handleAddMeal() {
+    router.push("/create-meal-page");
+  }
+
   return (
     <MainShell>
-      {isWorkout && (
+      {/* ✅ Top button changes based on mode */}
+      {isWorkout ? (
         <View style={styles.addButtonRow}>
           <TouchableOpacity
             style={styles.addButton}
@@ -106,21 +169,32 @@ export default function HomeScreen() {
             <Text style={styles.addButtonText}>+ Workout</Text>
           </TouchableOpacity>
         </View>
+      ) : (
+        <View style={styles.addButtonRow}>
+          <TouchableOpacity
+            style={styles.addButton}
+            onPress={handleAddMeal}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.addButtonText}>+ Meal</Text>
+          </TouchableOpacity>
+        </View>
       )}
 
       <Animated.View style={[styles.contentWrapper, { opacity: fadeAnim }]}>
+        {/* ✅ WORKOUT MODE */}
         {isWorkout ? (
-          <View style={styles.workoutSection}>
+          <View style={styles.section}>
             {workouts.length === 0 ? (
               <Text style={styles.emptyText}>
                 You don’t have any workouts yet. Tap “+ Workout” to create one.
               </Text>
             ) : (
-              <View style={styles.workoutList}>
+              <View style={styles.list}>
                 {workouts.map((w) => (
                   <TouchableOpacity
                     key={w.id}
-                    style={styles.workoutCard}
+                    style={styles.card}
                     activeOpacity={0.85}
                     onPress={() =>
                       router.push({
@@ -129,10 +203,10 @@ export default function HomeScreen() {
                       })
                     }
                   >
-                    <Text style={styles.workoutName}>{w.name}</Text>
+                    <Text style={styles.cardTitle}>{w.name}</Text>
 
                     <Text
-                      style={styles.exerciseLine}
+                      style={styles.cardSubtitle}
                       numberOfLines={1}
                       ellipsizeMode="tail"
                     >
@@ -144,11 +218,38 @@ export default function HomeScreen() {
             )}
           </View>
         ) : (
-          <View style={styles.card}>
-            <Text style={styles.title}>Diet view</Text>
-            <Text style={styles.text}>
-              This is where your diet / meals dashboard will go.
-            </Text>
+          /* ✅ DIET MODE (MEALS) */
+          <View style={styles.section}>
+            {meals.length === 0 ? (
+              <Text style={styles.emptyText}>
+                You don’t have any meals yet. Tap “+ Meal” to create one.
+              </Text>
+            ) : (
+              <View style={styles.list}>
+                {meals.map((m) => (
+                  <TouchableOpacity
+                    key={m.id}
+                    style={styles.card}
+                    activeOpacity={0.85}
+                    onPress={() => {
+                      // Later: display-meal-page
+                      // router.push({ pathname: "/display-meal-page", params: { mealId: m.id } })
+                      router.push({ pathname: "/display-meal-page", params: { mealId: m.id } })
+                    }}
+                  >
+                    <Text style={styles.cardTitle}>{m.name}</Text>
+
+                    <Text
+                      style={styles.cardSubtitle}
+                      numberOfLines={1}
+                      ellipsizeMode="tail"
+                    >
+                      {formatIngredientLine(m.ingredients)}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
           </View>
         )}
       </Animated.View>
@@ -181,12 +282,12 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
 
-  workoutSection: { flex: 1 },
+  section: { flex: 1 },
   emptyText: { color: "#9ca3af", fontSize: 14 },
 
-  workoutList: { gap: 12 },
+  list: { gap: 12 },
 
-  workoutCard: {
+  card: {
     borderWidth: 1,
     borderColor: BORDER_GREY,
     backgroundColor: LIGHT_GREY,
@@ -194,30 +295,15 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     paddingHorizontal: 16,
   },
-  workoutName: {
+  cardTitle: {
     color: "#ffffff",
     fontSize: 16,
     fontWeight: "700",
     marginBottom: 8,
   },
-  exerciseLine: {
+  cardSubtitle: {
     color: "#c7c7c7",
     fontSize: 13,
     lineHeight: 18,
   },
-
-  card: {
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: BORDER_GREY,
-    padding: 16,
-    backgroundColor: LIGHT_GREY,
-  },
-  title: {
-    color: "#ffffff",
-    fontSize: 18,
-    fontWeight: "700",
-    marginBottom: 8,
-  },
-  text: { color: "#bbbbbb", fontSize: 14 },
 });
